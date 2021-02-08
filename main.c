@@ -10,6 +10,8 @@ int main()
     int command;
     int retval = sc_commandEncode(10, 55, &command);
     printl("encode result: %d", retval);
+    retval = sc_memorySet(15, 1000000);
+    sc_printFlagReg();
     retval = sc_memorySet(0, command);
     printl("set memory result: %d", retval);
     retval = sc_commandEncode(11, 100, &command);
