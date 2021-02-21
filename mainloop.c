@@ -78,8 +78,10 @@ int loop_exec()
             rk_mytermrestore();
             break;
         }
+        case KEY_Illegal:
+            break;
         }
-
+        fillRow(25);
         mt_gotoXY(25, 1);
     }
 }
@@ -158,6 +160,14 @@ void fillContext()
         for (int j = 0; j < width; j++)
             putchar(' ');
         putchar('\n');
+    }
+}
+
+void fillRow(int row)
+{
+    mt_gotoXY(row, 0);
+    for (int i = 0; i < 100; i++) {
+        putchar(' ');
     }
 }
 

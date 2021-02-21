@@ -11,5 +11,6 @@ void drawFlagsWin();
 void drawKeys();
 void drawBigCell();
 void fillContext();
+void fillRow(int row);
 
 #endif // MAINLOOP_H

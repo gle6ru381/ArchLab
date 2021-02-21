@@ -49,8 +49,10 @@ int rk_readKey(enum Keys* key)
 {
     unsigned char sym = getchar();
 
-    while (sym == '\n')
-        sym = getchar();
+    if (sym == '\n') {
+        *key = KEY_Illegal;
+        return 0;
+    }
 
     if (sym == 0x1B) {
         *key = receiveEscSeq();
