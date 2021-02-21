@@ -19,8 +19,10 @@ int sc_memorySet(int address, int value)
         flagReg |= Sc_Overflow;
         return -1;
     }
-    if (value > MAX_VALUE)
+    if (value > MAX_VALUE) {
+        flagReg |= Sc_Overflow;
         return -2;
+    }
     memory[address] = (uint16)value;
     return 0;
 }
@@ -98,4 +100,11 @@ int sc_regGet(int reg, int* val)
 
     *val = flagReg & reg ? 1 : 0;
     return 0;
+}
+
+#include <stdio.h>
+
+void sc_printFlagReg()
+{
+  printf("%X\n", flagReg);
 }

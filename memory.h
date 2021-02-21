@@ -36,5 +36,6 @@ int sc_regInit();
 int sc_regSet(int reg, int val);
 //! возвращает значения флага из регистра флагов
 int sc_regGet(int reg, int* retVal);
-
+//! выводит значение регистра флагов
+void sc_printFlagReg();
 #endif
