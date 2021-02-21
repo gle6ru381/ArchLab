@@ -11,6 +11,8 @@ struct Command {
 
 static int validateCommand(int command)
 {
+    if (command == 0)
+        return 1;
     if (command < Sc_Priv_FirstCode || command > Sc_Priv_LastCode)
         return 0;
     switch(command) {

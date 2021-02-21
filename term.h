@@ -2,14 +2,14 @@
 #define TERM_H
 
 enum Colors {
-    Color_1,
-    Color_2,
-    Color_3,
-    Color_4,
-    Color_5,
-    Color_6,
-    Color_7,
-    Color_8
+    Color_Black,
+    Color_Red,
+    Color_Green,
+    Color_Orange,
+    Color_Blue,
+    Color_Purple,
+    Color_Turq,
+    Color_White
 };
 
 //! производит очистку и перемещение курсора

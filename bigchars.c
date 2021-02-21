@@ -1,6 +1,7 @@
 #include "bigchars.h"
 #include <stdio.h>
 #include <unistd.h>
+#include <curses.h>
 
 int bc_printA(char* str)
 {
@@ -16,7 +17,7 @@ int bc_box(int row, int col, int width, int height)
     int rows, cols;
     if (mt_getscreensize(&rows, &cols) != 0)
         return -1;
-    if (rows < (row + width) || cols < (col + height))
+    if (rows < (row + height) || cols < (col + width))
         return -1;
     }
    mt_gotoXY(row, col);
