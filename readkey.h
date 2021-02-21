@@ -13,7 +13,8 @@ enum Keys {
     KEY_left,
     KEY_right,
     KEY_up,
-    KEY_down
+    KEY_down,
+    KEY_ENTER
 };
 
 //! анализирует последовательность символов и возвращает

@@ -9,6 +9,10 @@ static struct Cell {
     uint8 posCol;
 } currCell;
 
+static inline void inputMemory();
+//static inline void inputAccumulator();
+//static inline void inputCounter();
+
 static inline void setDefaultColor()
 {
     mt_setbgcolor(Color_White);
@@ -26,6 +30,8 @@ int loop_exec()
     currCell.posCol = 0;
     currCell.posRow = 0;
     setDefaultColor();
+
+    rk_mytermregime(1, 0, 0, 0, 0);
 
     fillContext();
     drawMemory();
@@ -78,11 +84,20 @@ int loop_exec()
             rk_mytermrestore();
             break;
         }
+        case KEY_ENTER: {
+            mt_gotoXY(25, 1);
+            inputMemory();
+            getchar();
+            repaintCell();
+        }
+        case KEY_F5: {
+
+        }
         case KEY_Illegal:
             break;
         }
-        fillRow(25);
-        mt_gotoXY(25, 1);
+//        fillRow(25);
+//        mt_gotoXY(25, 1);
     }
 }
 
@@ -417,3 +432,25 @@ void drawBigCell()
     printDef(val, offRow + 1, offCol);
     }
 }
+
+static inline void inputMemory()
+{
+    printf("Введите значение:\n");
+    rk_mytermregime(0, 0, 0, 1, 0);
+    int command, operand, result;
+    scanf("%2d%2d", &command, &operand);
+    int retval = sc_commandEncode(command, operand, &result);
+    if (retval != 0)
+        printf("Неверное значение");
+    else
+        sc_memorySet((currCell.posRow * 10 + currCell.posCol), result);
+    rk_mytermregime(1, 0, 0, 0, 0);
+}
+
+//static inline void inputAccumulator()
+//{
+//    printf("Введите значение:\n");
+//    rk_mytermregime(0, 0, 0, 1, 0);
+//    int command, operand, result;
+//    int retval = sc_commandEncode(command, operand)
+//}

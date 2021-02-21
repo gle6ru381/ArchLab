@@ -1,6 +1,8 @@
 #include "readkey.h"
 #include "memory.h"
 #include <stdio.h>
+#include <termios.h>
+#include <unistd.h>
 
 static enum Keys receiveEscSeq()
 {
@@ -49,11 +51,6 @@ int rk_readKey(enum Keys* key)
 {
     unsigned char sym = getchar();
 
-    if (sym == '\n') {
-        *key = KEY_Illegal;
-        return 0;
-    }
-
     if (sym == 0x1B) {
         *key = receiveEscSeq();
         if (*key == KEY_Illegal)
@@ -74,6 +71,9 @@ int rk_readKey(enum Keys* key)
             break;
         case 'i':
             *key = KEY_i;
+            break;
+        case '\n':
+            *key = KEY_ENTER;
             break;
         default:
             *key = KEY_Illegal;
@@ -99,4 +99,23 @@ int rk_mytermrestore()
     scanf("%s", fileName);
 
     return sc_memoryLoad(fileName);
+}
+
+int rk_mytermregime(int regime, int vtime, int vmin, int echo, int sigint)
+{
+    struct termios term;
+    tcgetattr(0, &term);
+    if (regime) {
+        term.c_lflag &= ~ICANON;
+    } else {
+        term.c_lflag |= ICANON;
+    }
+
+    if (echo) {
+        term.c_lflag |= ECHO;
+    } else {
+        term.c_lflag &= ~ECHO;
+    }
+    tcsetattr(0, TCSANOW, &term);
+    return 0;
 }
