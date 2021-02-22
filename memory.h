@@ -38,4 +38,15 @@ int sc_regSet(int reg, int val);
 int sc_regGet(int reg, int* retVal);
 //! выводит значение регистра флагов
 void sc_printFlagReg();
+
+//! Ввод аккумулятора
+void sc_accumSet(uint16 val);
+//! Вывод аккумулятора
+uint16 sc_accumGet();
+
+//! Ввод счетчика команд
+void sc_counterSet(uint16 val);
+//! Вывод счетчика команд
+uint16 sc_counterGet();
+
 #endif

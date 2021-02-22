@@ -49,7 +49,7 @@ int sc_commandEncode(int command, int operand, int* value)
     form.command.operationCode = command;
     form.command.operand = operand;
 
-    printf("form: %d, %d\n", form.command.operationCode, form.command.operand);
+    // printf("form: %d, %d\n", form.command.operationCode, form.command.operand);
 
     *value = (int)form.buff;
     return 0;

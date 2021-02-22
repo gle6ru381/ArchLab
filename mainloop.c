@@ -10,8 +10,8 @@ static struct Cell {
 } currCell;
 
 static inline void inputMemory();
-//static inline void inputAccumulator();
-//static inline void inputCounter();
+static inline void inputAccumulator();
+static inline void inputCounter();
 
 static inline void setDefaultColor()
 {
@@ -89,15 +89,30 @@ int loop_exec()
             inputMemory();
             getchar();
             repaintCell();
+            break;
         }
         case KEY_F5: {
+			mt_gotoXY(25, 1);
+			inputAccumulator();
+			getchar();
+			drawAccumulator();
+			break;
 
         }
+        case KEY_F6: {
+			mt_gotoXY(25, 1);
+			inputCounter();
+			getchar();
+			drawInstructionCounter();
+			break;
+		}
         case KEY_Illegal:
             break;
         }
-//        fillRow(25);
-//        mt_gotoXY(25, 1);
+        //fillRow(25);
+		//fillRow(26);
+		//fillRow(27);
+        //mt_gotoXY(25, 1);
     }
 }
 
@@ -109,6 +124,24 @@ static inline void setIllegalStrMem(char str[6])
     str[3] = '0';
     str[4] = '0';
     str[5] = '\0';
+}
+
+static void getMemBuff(char buff[6], int const command, int const operand)
+{
+	buff[0] = '+';
+    buff[1] = command / 10 + 0x30;
+    buff[2] = command % 10 + 0x30;
+    buff[3] = operand / 10 + 0x30;
+    buff[4] = operand % 10 + 0x30;
+    buff[5] = '\0';
+}
+
+static void getMemFromBuff(char buff[5], int* command, int* operand)
+{
+	*command = (buff[0] - 0x30) * 10;
+	*command += (buff[1] - 0x30);
+	*operand = (buff[2] - 0x30) * 10;
+	*operand += (buff[3] - 0x30);
 }
 
 static void printMemInd(int idx)
@@ -126,13 +159,15 @@ static void printMemInd(int idx)
         setIllegalStrMem(printBuff);
         goto end_print;
     }
+    
+    getMemBuff(printBuff, command, operand);
 
-    printBuff[0] = '+';
-    printBuff[1] = command / 10 + 0x30;
-    printBuff[2] = command % 10 + 0x30;
-    printBuff[3] = operand / 10 + 0x30;
-    printBuff[4] = operand % 10 + 0x30;
-    printBuff[5] = '\0';
+    //printBuff[0] = '+';
+    //printBuff[1] = command / 10 + 0x30;
+    //printBuff[2] = command % 10 + 0x30;
+    //printBuff[3] = operand / 10 + 0x30;
+    //printBuff[4] = operand % 10 + 0x30;
+    //printBuff[5] = '\0';
 
     end_print:
     printf("%s", printBuff);
@@ -209,24 +244,40 @@ void drawMemory()
 void drawAccumulator()
 {
     const int offsetCol = 63;
+    uint16 val = sc_accumGet();
+    int comm, operand;
+    char buff[6];
+    
+    sc_commandDecode(val, &comm, &operand);
 
     bc_box(1, offsetCol, 20, 3);
     mt_gotoXY(1, 4 + offsetCol);
     printf(" accumulator ");
     mt_gotoXY(2, 8 + offsetCol);
-    printf("+0000");
+    
+    getMemBuff(buff, comm, operand);
+    
+    printf("%s", buff);
 }
 
 void drawInstructionCounter()
 {
     const int offCol = 63;
     const int offRow = 4;
+    uint16 val = sc_counterGet();
+    int comm, operand;
+    char buff[6];
+    
+    sc_commandDecode(val, &comm, &operand);
 
     bc_box(offRow, offCol, 20, 3);
     mt_gotoXY(offRow, 1 + offCol);
     printf(" intructionCounter ");
     mt_gotoXY(offRow + 1, 8 + offCol);
-    printf("+0000");
+    
+    getMemBuff(buff, comm, operand);
+    
+    printf("%s", buff);
 }
 
 void drawOperationWin()
@@ -444,13 +495,44 @@ static inline void inputMemory()
         printf("Неверное значение");
     else
         sc_memorySet((currCell.posRow * 10 + currCell.posCol), result);
+        
     rk_mytermregime(1, 0, 0, 0, 0);
 }
 
-//static inline void inputAccumulator()
-//{
-//    printf("Введите значение:\n");
-//    rk_mytermregime(0, 0, 0, 1, 0);
-//    int command, operand, result;
-//    int retval = sc_commandEncode(command, operand)
-//}
+static inline void inputAccumulator()
+{
+    printf("Введите значение:\n");
+    rk_mytermregime(0, 0, 0, 1, 0);
+    int command, operand, result;
+    scanf("%2d%2d", &command, &operand);
+    
+    
+    int retval = sc_commandEncode(command, operand, &result);
+    if (retval != 0) {
+		printf("Неверное значение");
+		goto end_func;
+	}
+	sc_accumSet((uint16)result);
+	
+	end_func:
+	rk_mytermregime(1, 0, 0, 0, 0);
+}
+
+static inline void inputCounter()
+{
+	printf("Введите значение:\n");
+    rk_mytermregime(0, 0, 0, 1, 0);
+    int command, operand, result;
+    scanf("%2d%2d", &command, &operand);
+
+    
+    int retval = sc_commandEncode(command, operand, &result);
+    if (retval != 0 || (command == 0)) {
+		printf("Неверное значение");
+		goto end_func;
+	}
+	sc_counterSet((uint16)result);
+	
+	end_func:
+	rk_mytermregime(1, 0, 0, 0, 0);
+}
