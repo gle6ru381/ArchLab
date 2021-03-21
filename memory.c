@@ -3,7 +3,6 @@
 #include <unistd.h>
 #include <errno.h>
 #include <stdio.h>
-#define SC_MEMORY_SIZE 100
 #define MAX_VALUE (1 << 15) - 1
 static uint16 memory[SC_MEMORY_SIZE];
 static Sc_FlagsReg flagReg;
@@ -76,6 +75,8 @@ int sc_memoryLoad(char* file)
 int sc_regInit()
 {
     flagReg = 0;
+    accumReg = 0;
+    counterReg = 0;
     return 0;
 }
 

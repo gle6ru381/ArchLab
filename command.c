@@ -59,8 +59,10 @@ int sc_commandDecode(int value, int* command, int* operand)
 {
     union CommandForm form;
     form.buff = (uint16)value;
-    if (form.command.commandB)
+    if (form.command.commandB) {
+        *operand = form.command.operand;
         return -1;
+    }
     if (!validateCommand(form.command.operationCode)) {
         sc_regSet(Sc_IllInstr, 1);
         return -2;

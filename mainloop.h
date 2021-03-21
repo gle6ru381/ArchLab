@@ -5,7 +5,7 @@ int loop_exec();
 
 void drawMemory();
 void drawAccumulator();
-void drawInstructionCounter();
+void drawInstructionCounter(int);
 void drawOperationWin();
 void drawFlagsWin();
 void drawKeys();

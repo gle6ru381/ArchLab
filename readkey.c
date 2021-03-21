@@ -51,6 +51,8 @@ int rk_readKey(enum Keys* key)
 {
     unsigned char sym = getchar();
 
+    sc_regSet(Sc_ClockIgnore, 1);
+
     if (sym == 0x1B) {
         *key = receiveEscSeq();
         if (*key == KEY_Illegal)

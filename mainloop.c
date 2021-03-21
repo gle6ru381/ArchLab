@@ -2,12 +2,56 @@
 #include "mysimplecomputer.h"
 #include "bigchars.h"
 #include "readkey.h"
+#include <signal.h>
 #include <stdio.h>
+#include <sys/time.h>
+#include <unistd.h>
 
 static struct Cell {
     uint8 posRow;
     uint8 posCol;
 } currCell;
+
+#define TimerInit(timer) \
+    timer.it_value.tv_usec = 800000; \
+    timer.it_value.tv_sec = 0; \
+    timer.it_interval.tv_sec = 0; \
+    timer.it_interval.tv_usec = 800000;
+
+static inline void repaintCell()
+{
+    drawMemory();
+    drawBigCell();
+    drawOperationWin();
+}
+
+static void timerTimeoutHandler(int a)
+{
+    (void)a;
+    int clockFlag;
+    sc_regGet(Sc_ClockIgnore, &clockFlag);
+    if (clockFlag)
+        return;
+    sc_counterSet((sc_counterGet() + 1) % SC_MEMORY_SIZE);
+    drawInstructionCounter(0);
+    repaintCell();
+}
+
+static void userSignalHandler(int a)
+{
+    (void)a;
+    sc_regInit();
+    sc_memoryInit();
+
+    fillContext();
+    drawMemory();
+    drawFlagsWin();
+    drawKeys();
+    drawAccumulator();
+    drawOperationWin();
+    drawInstructionCounter(1);
+    drawBigCell();
+}
 
 static inline void inputMemory();
 static inline void inputAccumulator();
@@ -17,12 +61,6 @@ static inline void setDefaultColor()
 {
     mt_setbgcolor(Color_White);
     mt_setfgcolor(Color_Black);
-}
-
-static inline void repaintCell()
-{
-    drawMemory();
-    drawBigCell();
 }
 
 int loop_exec()
@@ -39,8 +77,26 @@ int loop_exec()
     drawKeys();
     drawAccumulator();
     drawOperationWin();
-    drawInstructionCounter();
+    drawInstructionCounter(1);
     drawBigCell();
+
+    //signal(SIGALRM, &timerTimeoutHandler);
+    struct sigaction act;
+    act.sa_handler = &timerTimeoutHandler;
+    act.sa_flags = SA_RESTART;
+    sigemptyset(&act.sa_mask);
+
+    sigaction(SIGALRM, &act, NULL);
+
+    act.sa_handler = &userSignalHandler;
+    act.sa_flags = SA_RESTART;
+    sigemptyset(&act.sa_mask);
+
+    sigaction(SIGUSR1, &act, NULL);
+
+    struct itimerval timer;
+    TimerInit(timer);
+    setitimer(ITIMER_REAL, &timer, NULL);
 
     mt_gotoXY(25, 1);
     enum Keys key;
@@ -84,6 +140,10 @@ int loop_exec()
             rk_mytermrestore();
             break;
         }
+        case KEY_i: {
+            raise(SIGUSR1);
+            break;
+        }
         case KEY_ENTER: {
             mt_gotoXY(25, 1);
             inputMemory();
@@ -103,16 +163,14 @@ int loop_exec()
 			mt_gotoXY(25, 1);
 			inputCounter();
 			getchar();
-			drawInstructionCounter();
+            drawInstructionCounter(0);
 			break;
 		}
         case KEY_Illegal:
             break;
         }
-        //fillRow(25);
-		//fillRow(26);
-		//fillRow(27);
-        //mt_gotoXY(25, 1);
+
+        sc_regSet(Sc_ClockIgnore, 0);
     }
 }
 
@@ -134,6 +192,42 @@ static void getMemBuff(char buff[6], int const command, int const operand)
     buff[3] = operand / 10 + 0x30;
     buff[4] = operand % 10 + 0x30;
     buff[5] = '\0';
+}
+
+static void getMemSepBuff(char buff[9], int const command, int const operand)
+{
+    buff[0] = '+';
+    buff[1] = command / 10 + 0x30;
+    buff[2] = command % 10 + 0x30;
+    buff[3] = ' ';
+    buff[4] = ':';
+    buff[5] = ' ';
+    buff[6] = operand / 10 + 0x30;
+    buff[7] = operand % 10 + 0x30;
+    buff[8] = '\0';
+}
+
+static void getOperandBuff(char buff[6], int const operand)
+{
+    buff[0] = '-';
+    buff[1] = '0';
+    buff[2] = '0';
+    buff[3] = operand / 10 + 0x30;
+    buff[4] = operand % 10 + 0x30;
+    buff[5] = '\0';
+}
+
+static void getOperandSepBuff(char buff[9], int const operand)
+{
+    buff[0] = '-';
+    buff[1] = '0';
+    buff[2] = '0';
+    buff[3] = ' ';
+    buff[4] = ':';
+    buff[5] = ' ';
+    buff[6] = operand / 10 + 0x30;
+    buff[7] = operand % 10 + 0x30;
+    buff[8] = '\0';
 }
 
 static void getMemFromBuff(char buff[5], int* command, int* operand)
@@ -260,22 +354,31 @@ void drawAccumulator()
     printf("%s", buff);
 }
 
-void drawInstructionCounter()
+void drawInstructionCounter(int fullPaint)
 {
     const int offCol = 63;
     const int offRow = 4;
-    uint16 val = sc_counterGet();
+    uint16 counterVal = sc_counterGet();
+    int val;
+    sc_memoryGet(counterVal, &val);
     int comm, operand;
     char buff[6];
     
-    sc_commandDecode(val, &comm, &operand);
+    int retVal = sc_commandDecode(val, &comm, &operand);
+    if (retVal != 0) {
+        getOperandBuff(buff, operand);
+    } else {
+        getMemBuff(buff, comm, operand);
+    }
 
-    bc_box(offRow, offCol, 20, 3);
-    mt_gotoXY(offRow, 1 + offCol);
-    printf(" intructionCounter ");
+    if (fullPaint) {
+        bc_box(offRow, offCol, 20, 3);
+        mt_gotoXY(offRow, 1 + offCol);
+        printf(" intructionCounter ");
+    }
     mt_gotoXY(offRow + 1, 8 + offCol);
     
-    getMemBuff(buff, comm, operand);
+    //getMemBuff(buff, comm, operand);
     
     printf("%s", buff);
 }
@@ -289,7 +392,20 @@ void drawOperationWin()
     mt_gotoXY(offRow, 5 + offCol);
     printf(" Operation ");
     mt_gotoXY(offRow + 1, 7 + offCol);
-    printf("+00 : 00");
+    int memInd;
+    sc_memoryGet(currCell.posRow * 10 + currCell.posCol, &memInd);
+
+    int comm, operand;
+    char buff[9];
+
+    int retVal = sc_commandDecode(memInd, &comm, &operand);
+    if (retVal != 0) {
+        getOperandSepBuff(buff, operand);
+    } else {
+        getMemSepBuff(buff, comm, operand);
+    }
+
+    printf("%s", buff);
 }
 
 void drawFlagsWin()
@@ -522,16 +638,15 @@ static inline void inputCounter()
 {
 	printf("Введите значение:\n");
     rk_mytermregime(0, 0, 0, 1, 0);
-    int command, operand, result;
-    scanf("%2d%2d", &command, &operand);
+    int addr;
+    scanf("%d", &addr);
 
     
-    int retval = sc_commandEncode(command, operand, &result);
-    if (retval != 0 || (command == 0)) {
+    if (addr >= SC_MEMORY_SIZE) {
 		printf("Неверное значение");
 		goto end_func;
 	}
-	sc_counterSet((uint16)result);
+    sc_counterSet((uint16)addr);
 	
 	end_func:
 	rk_mytermregime(1, 0, 0, 0, 0);

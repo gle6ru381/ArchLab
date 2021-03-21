@@ -14,10 +14,10 @@ int main()
     sc_regInit();
 //  tests();
 
-    sc_memorySet(10, 15);
-    int command;
-    sc_commandEncode(10, 55, &command);
-    sc_memorySet(50, command);
+//    sc_memorySet(10, 15);
+//    int command;
+//    sc_commandEncode(10, 55, &command);
+//    sc_memorySet(50, command);
     loop_exec();
 //    drawMemory();
 //    drawAccumulator();

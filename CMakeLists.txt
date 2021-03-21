@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.0)
 
-set(CMAKE_C_FLAGS "-O0 -std=c17")
+set(CMAKE_C_FLAGS "-O0 -std=gnu18 -D_POSIX_C_SOURCE=200809L")
 
 ADD_LIBRARY(MySimpleComputer STATIC memory.c command.c memory.h command.h)
 

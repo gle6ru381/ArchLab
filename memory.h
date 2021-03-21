@@ -3,6 +3,8 @@
 
 #include <string.h>
 
+#define SC_MEMORY_SIZE 100
+
 typedef unsigned short uint16;
 typedef unsigned char uint8;
 
