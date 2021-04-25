@@ -2,8 +2,9 @@
 #include "mysimplecomputer.h"
 #include "bigchars.h"
 #include "readkey.h"
-#include <signal.h>
+#include "process.h"
 #include <stdio.h>
+#include <signal.h>
 #include <sys/time.h>
 #include <unistd.h>
 
@@ -17,6 +18,18 @@ static struct Cell {
     timer.it_value.tv_sec = 0; \
     timer.it_interval.tv_sec = 0; \
     timer.it_interval.tv_usec = 800000;
+
+static int bbToS(int b1, int b2)
+{
+    return (b1 / 0x10) * (0x1000) + (b1 % 0x10) * (0x100) +
+            (b2 / 0x10) * 0x10 + b2 % 0x10;
+}
+
+//void sTobb(uint16 s, int* b1, int* b2)
+//{
+//    *b1 = s >> 8;
+//    *b2 = s % 0x100;
+//}
 
 static inline void repaintCell()
 {
@@ -32,8 +45,10 @@ static void timerTimeoutHandler(int a)
     sc_regGet(Sc_ClockIgnore, &clockFlag);
     if (clockFlag)
         return;
-    sc_counterSet((sc_counterGet() + 1) % SC_MEMORY_SIZE);
+    CU();
     drawInstructionCounter(0);
+    drawAccumulator();
+    drawFlagsWin();
     repaintCell();
 }
 
@@ -53,7 +68,6 @@ static void userSignalHandler(int a)
     drawBigCell();
 }
 
-static inline void inputMemory();
 static inline void inputAccumulator();
 static inline void inputCounter();
 
@@ -70,6 +84,8 @@ int loop_exec()
     setDefaultColor();
 
     rk_mytermregime(1, 0, 0, 0, 0);
+
+    sc_regSet(Sc_IllInstr, 0);
 
     fillContext();
     drawMemory();
@@ -94,15 +110,14 @@ int loop_exec()
 
     sigaction(SIGUSR1, &act, NULL);
 
-    struct itimerval timer;
-    TimerInit(timer);
-    setitimer(ITIMER_REAL, &timer, NULL);
-
     mt_gotoXY(25, 1);
     enum Keys key;
     while (1) {
         rk_readKey(&key);
-
+//        int regVal;
+//        sc_regGet(Sc_ClockIgnore, &regVal);
+//        if (regVal)
+//            continue;
         switch (key) {
         case KEY_right: {
             if (currCell.posCol < 9) {
@@ -132,12 +147,38 @@ int loop_exec()
             }
             break;
         }
+        case KEY_r: {
+            sc_regSet(Sc_ClockIgnore, 0);
+            sc_regSet(Sc_IllInstr, 0);
+            sc_regSet(Sc_Overflow, 0);
+            sc_regSet(Sc_SegFault, 0);
+            sc_regSet(Sc_ZeroError, 0);
+            struct itimerval timer;
+            TimerInit(timer);
+            setitimer(ITIMER_REAL, &timer, NULL);
+            break;
+        }
+        case KEY_t: {
+            timerTimeoutHandler(0);
+            break;
+        }
         case KEY_s: {
+            mt_gotoXY(25, 1);
             rk_mytermsave();
+            mt_gotoXY(25, 1);
+            printf("                                     \n"
+                   "                                     ");
+            getchar();
             break;
         }
         case KEY_l: {
+            mt_gotoXY(25, 1);
             rk_mytermrestore();
+            mt_gotoXY(25, 1);
+            printf("                                       \n"
+                   "                                       ");
+            getchar();
+            repaintCell();
             break;
         }
         case KEY_i: {
@@ -145,9 +186,7 @@ int loop_exec()
             break;
         }
         case KEY_ENTER: {
-            mt_gotoXY(25, 1);
-            inputMemory();
-            getchar();
+            inputMemory(currCell.posRow * 10 + currCell.posCol);
             repaintCell();
             break;
         }
@@ -169,8 +208,9 @@ int loop_exec()
         case KEY_Illegal:
             break;
         }
-
-        sc_regSet(Sc_ClockIgnore, 0);
+        drawInstructionCounter(0);
+        drawAccumulator();
+        drawFlagsWin();
     }
 }
 
@@ -186,56 +226,63 @@ static inline void setIllegalStrMem(char str[6])
 
 static void getMemBuff(char buff[6], int const command, int const operand)
 {
-	buff[0] = '+';
-    buff[1] = command / 10 + 0x30;
-    buff[2] = command % 10 + 0x30;
-    buff[3] = operand / 10 + 0x30;
-    buff[4] = operand % 10 + 0x30;
-    buff[5] = '\0';
+    sprintf(buff, "+%02X%02X", command, operand);
+//	buff[0] = '+';
+//    buff[1] = command / 10 + 0x30;
+//    buff[2] = command % 10 + 0x30;
+//    buff[3] = operand / 10 + 0x30;
+//    buff[4] = operand % 10 + 0x30;
+//    buff[5] = '\0';
 }
 
 static void getMemSepBuff(char buff[9], int const command, int const operand)
 {
-    buff[0] = '+';
-    buff[1] = command / 10 + 0x30;
-    buff[2] = command % 10 + 0x30;
-    buff[3] = ' ';
-    buff[4] = ':';
-    buff[5] = ' ';
-    buff[6] = operand / 10 + 0x30;
-    buff[7] = operand % 10 + 0x30;
-    buff[8] = '\0';
+    sprintf(buff, "+%02X : %02X", command, operand);
+//    buff[0] = '+';
+//    buff[1] = command / 16 + 0x30;
+//    buff[2] = command % 16 + 0x30;
+//    buff[3] = ' ';
+//    buff[4] = ':';
+//    buff[5] = ' ';
+//    buff[6] = operand / 16 + 0x30;
+//    buff[7] = operand % 16 + 0x30;
+//    buff[8] = '\0';
 }
 
 static void getOperandBuff(char buff[6], int const operand)
 {
-    buff[0] = '-';
-    buff[1] = '0';
-    buff[2] = '0';
-    buff[3] = operand / 10 + 0x30;
-    buff[4] = operand % 10 + 0x30;
-    buff[5] = '\0';
+    uint16_t val = (uint16_t)sc_remValue(operand);
+    sprintf(buff, "-%04X", val);
+//    buff[0] = '-';
+//    buff[1] = '0';
+//    buff[2] = '0';
+//    buff[3] = operand / 16 + 0x30;
+//    buff[4] = operand % 16 + 0x30;
+//    buff[5] = '\0';
 }
 
-static void getOperandSepBuff(char buff[9], int const operand)
+static void getOperandSepBuff(char buff[9], int operand)
 {
-    buff[0] = '-';
-    buff[1] = '0';
-    buff[2] = '0';
-    buff[3] = ' ';
-    buff[4] = ':';
-    buff[5] = ' ';
-    buff[6] = operand / 10 + 0x30;
-    buff[7] = operand % 10 + 0x30;
-    buff[8] = '\0';
+    operand = sc_remValue(operand);
+    sprintf(buff, "-%02X : %02X", operand >> 8, operand % 0x100);
+//    buff[0] = '-';
+//    buff[1] = '0';
+//    buff[2] = '0';
+//    buff[3] = ' ';
+//    buff[4] = ':';
+//    buff[5] = ' ';
+//    buff[6] = operand / 16 + 0x30;
+//    buff[7] = operand % 16 + 0x30;
+//    buff[8] = '\0';
 }
 
 static void getMemFromBuff(char buff[5], int* command, int* operand)
 {
-	*command = (buff[0] - 0x30) * 10;
-	*command += (buff[1] - 0x30);
-	*operand = (buff[2] - 0x30) * 10;
-	*operand += (buff[3] - 0x30);
+    sscanf(buff, "%02X%02X", command, operand);
+//    *command = (buff[0] - 0x30) * 16;
+//	*command += (buff[1] - 0x30);
+//	*operand = (buff[2] - 0x30) * 10;
+//	*operand += (buff[3] - 0x30);
 }
 
 static void printMemInd(int idx)
@@ -250,19 +297,17 @@ static void printMemInd(int idx)
     }
     retval = sc_commandDecode(memVal, &command, &operand);
     if (retval != 0) {
-        setIllegalStrMem(printBuff);
-        goto end_print;
+        getOperandBuff(printBuff, memVal);
+        //setIllegalStrMem(printBuff);
+    } else {
+        getMemBuff(printBuff, command, operand);
     }
-    
-    getMemBuff(printBuff, command, operand);
-
     //printBuff[0] = '+';
     //printBuff[1] = command / 10 + 0x30;
     //printBuff[2] = command % 10 + 0x30;
     //printBuff[3] = operand / 10 + 0x30;
     //printBuff[4] = operand % 10 + 0x30;
     //printBuff[5] = '\0';
-
     end_print:
     printf("%s", printBuff);
 }
@@ -342,14 +387,17 @@ void drawAccumulator()
     int comm, operand;
     char buff[6];
     
-    sc_commandDecode(val, &comm, &operand);
+    int retVal = sc_commandDecode(val, &comm, &operand);
 
     bc_box(1, offsetCol, 20, 3);
     mt_gotoXY(1, 4 + offsetCol);
     printf(" accumulator ");
     mt_gotoXY(2, 8 + offsetCol);
     
-    getMemBuff(buff, comm, operand);
+    if (retVal == 0)
+        getMemBuff(buff, comm, operand);
+    else
+        getOperandBuff(buff, val);
     
     printf("%s", buff);
 }
@@ -366,7 +414,7 @@ void drawInstructionCounter(int fullPaint)
     
     int retVal = sc_commandDecode(val, &comm, &operand);
     if (retVal != 0) {
-        getOperandBuff(buff, operand);
+        getOperandBuff(buff, val);
     } else {
         getMemBuff(buff, comm, operand);
     }
@@ -400,7 +448,7 @@ void drawOperationWin()
 
     int retVal = sc_commandDecode(memInd, &comm, &operand);
     if (retVal != 0) {
-        getOperandSepBuff(buff, operand);
+        getOperandSepBuff(buff, memInd);
     } else {
         getMemSepBuff(buff, comm, operand);
     }
@@ -516,6 +564,42 @@ void getMinus(int val[2])
     val[1] = 0b00000000000000000000000011111111;
 }
 
+void getAChar(int val[2])
+{
+    val[0] = 2118269952;
+    val[1] = 4342338;
+}
+
+void getBChar(int val[2])
+{
+    val[0] = 1044528640;
+    val[1] = 4080194;
+}
+
+void getCChar(int val[2])
+{
+    val[0] = 37895168;
+    val[1] = 3949058;
+}
+
+void getDChar(int val[2])
+{
+    val[0] = 1111637504;
+    val[1] = 4080194;
+}
+
+void getEChar(int val[2])
+{
+    val[0] = 2114092544;
+    val[1] = 8258050;
+}
+
+void getFChar(int val[2])
+{
+    val[0] = 33717760;
+    val[1] = 131646;
+}
+
 void choiseBigVal(int val, int retVal[2])
 {
     switch (val) {
@@ -548,6 +632,24 @@ void choiseBigVal(int val, int retVal[2])
         return;
     case 9:
         getNine(retVal);
+        return;
+    case 10:
+        getAChar(retVal);
+        return;
+    case 11:
+        getBChar(retVal);
+        return;
+    case 12:
+        getCChar(retVal);
+        return;
+    case 13:
+        getDChar(retVal);
+        return;
+    case 14:
+        getEChar(retVal);
+        return;
+    case 15:
+        getFChar(retVal);
         return;
     }
 }
@@ -586,33 +688,18 @@ void drawBigCell()
     getPlus(val);
     printDef(val ,offRow + 1, offCol);
     offCol += 9;
-    choiseBigVal(command / 10, val);
+    choiseBigVal(command / 16, val);
     printDef(val, offRow + 1, offCol);
     offCol += 9;
-    choiseBigVal(command % 10, val);
+    choiseBigVal(command % 16, val);
     printDef(val, offRow + 1, offCol);
     offCol += 9;
-    choiseBigVal(operand / 10, val);
+    choiseBigVal(operand / 16, val);
     printDef(val, offRow + 1, offCol);
     offCol += 9;
-    choiseBigVal(operand % 10, val);
+    choiseBigVal(operand % 16, val);
     printDef(val, offRow + 1, offCol);
     }
-}
-
-static inline void inputMemory()
-{
-    printf("Введите значение:\n");
-    rk_mytermregime(0, 0, 0, 1, 0);
-    int command, operand, result;
-    scanf("%2d%2d", &command, &operand);
-    int retval = sc_commandEncode(command, operand, &result);
-    if (retval != 0)
-        printf("Неверное значение");
-    else
-        sc_memorySet((currCell.posRow * 10 + currCell.posCol), result);
-        
-    rk_mytermregime(1, 0, 0, 0, 0);
 }
 
 static inline void inputAccumulator()
@@ -620,17 +707,20 @@ static inline void inputAccumulator()
     printf("Введите значение:\n");
     rk_mytermregime(0, 0, 0, 1, 0);
     int command, operand, result;
-    scanf("%2d%2d", &command, &operand);
-    
+    scanf("%02X%02X", &command, &operand);
     
     int retval = sc_commandEncode(command, operand, &result);
     if (retval != 0) {
-		printf("Неверное значение");
-		goto end_func;
-	}
-	sc_accumSet((uint16)result);
+        result = bbToS(command, operand);
+    }
+//		printf("Неверное значение");
+//		goto end_func;
+//	}
+    retval = sc_accumSet((uint16)result);
+    if (retval != 0) {
+        printf("Неверное значение");
+    }
 	
-	end_func:
 	rk_mytermregime(1, 0, 0, 0, 0);
 }
 

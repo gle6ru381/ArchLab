@@ -6,7 +6,7 @@
 #define MAX_VALUE (1 << 15) - 1
 static uint16 memory[SC_MEMORY_SIZE];
 static Sc_FlagsReg flagReg;
-static uint16 accumReg = 0;
+static int16_t accumReg = 0;
 static uint16 counterReg = 0;
 
 int sc_memoryInit()
@@ -20,7 +20,7 @@ int sc_memorySet(int address, int value)
         flagReg |= Sc_Overflow;
         return -1;
     }
-    if (value > MAX_VALUE) {
+    if (value > MAX_VALUE && ((uint16)value >> 15) == 0) {
         flagReg |= Sc_Overflow;
         return -2;
     }
@@ -105,19 +105,26 @@ int sc_regGet(int reg, int* val)
     return 0;
 }
 
-void sc_accumSet(uint16 val)
+int sc_accumSet(int16_t val)
 {
-  accumReg = val;
+//    if (val > MAX_VALUE) {
+//        return -1;
+//    }
+    accumReg = val;
+    return 0;
 }
 
-uint16 sc_accumGet()
+int16_t sc_accumGet()
 {
-  return accumReg;
+    return accumReg;
 }
 
-void sc_counterSet(uint16 val)
+int sc_counterSet(uint16 val)
 {
-  counterReg = val;
+    if (val > MAX_VALUE)
+        return -1;
+    counterReg = val;
+    return 0;
 }
 
 uint16 sc_counterGet()

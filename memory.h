@@ -2,11 +2,12 @@
 #define MEMORY_H
 
 #include <string.h>
+#include <inttypes.h>
 
 #define SC_MEMORY_SIZE 100
 
-typedef unsigned short uint16;
-typedef unsigned char uint8;
+typedef uint16_t uint16;
+typedef uint8_t uint8;
 
 typedef enum {
     //!Переполнение при выполнении
@@ -42,12 +43,12 @@ int sc_regGet(int reg, int* retVal);
 void sc_printFlagReg();
 
 //! Ввод аккумулятора
-void sc_accumSet(uint16 val);
+int sc_accumSet(int16_t val);
 //! Вывод аккумулятора
-uint16 sc_accumGet();
+int16_t sc_accumGet();
 
 //! Ввод счетчика команд
-void sc_counterSet(uint16 val);
+int sc_counterSet(uint16 val);
 //! Вывод счетчика команд
 uint16 sc_counterGet();
 

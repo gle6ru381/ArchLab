@@ -1,18 +1,16 @@
 #include "command.h"
 
 union CommandForm {
-    uint16 buff;
+    int16_t buff;
 struct Command {
-    uint8 commandB : 1;
-    uint8 operationCode : 7;
     uint8 operand : 7;
+    uint8 operationCode : 7;
+    uint8 commandB : 1;
 } command;
 };
 
 static int validateCommand(int command)
 {
-    if (command == 0)
-        return 1;
     if (command < Sc_Priv_FirstCode || command > Sc_Priv_LastCode)
         return 0;
     switch(command) {
@@ -49,8 +47,6 @@ int sc_commandEncode(int command, int operand, int* value)
     form.command.operationCode = command;
     form.command.operand = operand;
 
-    // printf("form: %d, %d\n", form.command.operationCode, form.command.operand);
-
     *value = (int)form.buff;
     return 0;
 }
@@ -58,13 +54,12 @@ int sc_commandEncode(int command, int operand, int* value)
 int sc_commandDecode(int value, int* command, int* operand)
 {
     union CommandForm form;
-    form.buff = (uint16)value;
+    form.buff = (int16_t)value;
     if (form.command.commandB) {
-        *operand = form.command.operand;
         return -1;
     }
     if (!validateCommand(form.command.operationCode)) {
-        sc_regSet(Sc_IllInstr, 1);
+        //sc_regSet(Sc_IllInstr, 1);
         return -2;
     }
     if (!validateOperand(form.command.operand))
@@ -72,4 +67,30 @@ int sc_commandDecode(int value, int* command, int* operand)
     *command = form.command.operationCode;
     *operand = form.command.operand;
     return 0;
+}
+
+int sc_makeValue(int val)
+{
+    union CommandForm form;
+    form.buff = (int16_t)val;
+    if (form.buff < 0) {
+        uint16_t tmp = form.buff;
+        tmp <<= 1;
+        tmp >>= 1;
+        form.buff = tmp;
+    }
+    form.command.commandB = 1;
+    return form.buff;
+}
+
+int16_t sc_remValue(int val)
+{
+    union CommandForm form;
+    form.buff = (int16_t)val;
+    form.command.commandB = 0;
+    int16_t tmp = form.buff << 1;
+    if ((tmp) < 0) {
+        form.buff = tmp >> 1;
+    }
+    return form.buff;
 }

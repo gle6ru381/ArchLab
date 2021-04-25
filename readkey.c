@@ -51,7 +51,7 @@ int rk_readKey(enum Keys* key)
 {
     unsigned char sym = getchar();
 
-    sc_regSet(Sc_ClockIgnore, 1);
+//    sc_regSet(Sc_ClockIgnore, 1);
 
     if (sym == 0x1B) {
         *key = receiveEscSeq();
@@ -82,23 +82,28 @@ int rk_readKey(enum Keys* key)
             return -1;
         }
     }
+//    sc_regSet(Sc_ClockIgnore, 0);
     return 0;
 }
 
 int rk_mytermsave()
 {
+    rk_mytermregime(0, 0, 0, 1, 0);
     printf("Введите имя файла:\n");
     char fileName[250];
     scanf("%s", fileName);
+    rk_mytermregime(1, 0, 0, 0, 0);
 
     return sc_memorySave(fileName);
 }
 
 int rk_mytermrestore()
 {
+    rk_mytermregime(0, 0, 0, 1, 0);
     printf("Введите имя файла:\n");
     char fileName[250];
     scanf("%s", fileName);
+    rk_mytermregime(1, 0, 0, 0, 0);
 
     return sc_memoryLoad(fileName);
 }

@@ -15,4 +15,7 @@ int sc_commandEncode(int command, int operand, int* value);
 //!декодирует значение как команду Simple Computer.
 int sc_commandDecode(int value, int* command, int* operand);
 
+int sc_makeValue(int val);
+int16_t sc_remValue(int val);
+
 #endif
