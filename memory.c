@@ -11,7 +11,7 @@ static uint16 counterReg = 0;
 
 int sc_memoryInit()
 {
-  return memset(memory, 0, SC_MEMORY_SIZE), 0;
+  return memset(memory, 0, SC_MEMORY_SIZE * sizeof(uint16)), 0;
 }
 
 int sc_memorySet(int address, int value)

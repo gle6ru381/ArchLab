@@ -14,10 +14,10 @@ static struct Cell {
 } currCell;
 
 #define TimerInit(timer) \
-    timer.it_value.tv_usec = 800000; \
+    timer.it_value.tv_usec = 200000; \
     timer.it_value.tv_sec = 0; \
     timer.it_interval.tv_sec = 0; \
-    timer.it_interval.tv_usec = 800000;
+    timer.it_interval.tv_usec = 200000;
 
 static int bbToS(int b1, int b2)
 {
@@ -57,8 +57,16 @@ static void timerTimeoutHandler(int a)
 static void userSignalHandler(int a)
 {
     (void)a;
+    sc_regSet(Sc_ClockIgnore, 1);
+    struct itimerval timer;
+    timer.it_value.tv_sec = 0;
+    timer.it_value.tv_usec = 0;
+    timer.it_interval.tv_sec = 0;
+    timer.it_interval.tv_usec = 0;
+    setitimer(ITIMER_REAL, &timer, NULL);
     sc_regInit();
     sc_memoryInit();
+    sc_regSet(Sc_ClockIgnore, 0);
 
     fillContext();
     drawMemory();
@@ -116,6 +124,7 @@ int loop_exec()
     enum Keys key;
     while (1) {
         rk_readKey(&key);
+        sc_regSet(Sc_ClockIgnore, 1);
 //        int regVal;
 //        sc_regGet(Sc_ClockIgnore, &regVal);
 //        if (regVal)
@@ -202,16 +211,18 @@ int loop_exec()
         }
         case KEY_F6: {
 			mt_gotoXY(25, 1);
-            sc_regSet(Sc_ClockIgnore, 1);
 			inputCounter();
-            sc_regSet(Sc_ClockIgnore, 0);
             getchar();
             drawInstructionCounter(0);
 			break;
 		}
-        case KEY_Illegal:
+        case KEY_Illegal: {
+            rk_readKey(&key);
             break;
         }
+        }
+        fflush(stdout);
+        sc_regSet(Sc_ClockIgnore, 0);
         drawInstructionCounter(0);
         drawAccumulator();
         drawFlagsWin();
@@ -708,7 +719,6 @@ void drawBigCell()
 
 static inline void inputAccumulator()
 {
-    sc_regSet(Sc_ClockIgnore, 1);
     printf("Введите значение:\n");
     rk_mytermregime(0, 0, 0, 1, 0);
     int command, operand, result;
@@ -727,7 +737,6 @@ static inline void inputAccumulator()
     }
 	
 	rk_mytermregime(1, 0, 0, 0, 0);
-    sc_regSet(Sc_ClockIgnore, 0);
 }
 
 static inline void inputCounter()

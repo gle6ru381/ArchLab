@@ -214,7 +214,6 @@ static int bbToS(int b1, int b2)
 
 void inputMemory(int addr)
 {
-    sc_regSet(Sc_ClockIgnore, 1);
     mt_gotoXY(25, 1);
     rk_mytermregime(0, 0, 0, 1, 0);
     printf("Введите признак команды:\n");
@@ -253,5 +252,4 @@ void inputMemory(int addr)
 
     rk_mytermregime(1, 0, 0, 0, 0);
     getchar();
-    sc_regSet(Sc_ClockIgnore, 0);
 }
