@@ -45,7 +45,9 @@ static void timerTimeoutHandler(int a)
     sc_regGet(Sc_ClockIgnore, &clockFlag);
     if (clockFlag)
         return;
+    sc_regSet(Sc_ClockIgnore, 1);
     CU();
+    sc_regSet(Sc_ClockIgnore, 0);
     drawInstructionCounter(0);
     drawAccumulator();
     drawFlagsWin();
@@ -200,8 +202,10 @@ int loop_exec()
         }
         case KEY_F6: {
 			mt_gotoXY(25, 1);
+            sc_regSet(Sc_ClockIgnore, 1);
 			inputCounter();
-			getchar();
+            sc_regSet(Sc_ClockIgnore, 0);
+            getchar();
             drawInstructionCounter(0);
 			break;
 		}
@@ -704,6 +708,7 @@ void drawBigCell()
 
 static inline void inputAccumulator()
 {
+    sc_regSet(Sc_ClockIgnore, 1);
     printf("Введите значение:\n");
     rk_mytermregime(0, 0, 0, 1, 0);
     int command, operand, result;
@@ -722,6 +727,7 @@ static inline void inputAccumulator()
     }
 	
 	rk_mytermregime(1, 0, 0, 0, 0);
+    sc_regSet(Sc_ClockIgnore, 0);
 }
 
 static inline void inputCounter()

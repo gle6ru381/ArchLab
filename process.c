@@ -3,6 +3,7 @@
 #include "bigchars.h"
 #include "readkey.h"
 #include <stdio.h>
+#include <signal.h>
 
 static void outMemory(int addr)
 {
@@ -146,8 +147,10 @@ static int jzFunc(int operand)
     return 0;
 }
 
-static int haltFunc(int operand)
+static int haltFunc(int a)
 {
+    (void)a;
+    raise(SIGUSR1);
     return 0;
 }
 

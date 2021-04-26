@@ -88,22 +88,26 @@ int rk_readKey(enum Keys* key)
 
 int rk_mytermsave()
 {
+    sc_regSet(Sc_ClockIgnore, 1);
     rk_mytermregime(0, 0, 0, 1, 0);
     printf("Введите имя файла:\n");
     char fileName[250];
     scanf("%s", fileName);
     rk_mytermregime(1, 0, 0, 0, 0);
+    sc_regSet(Sc_ClockIgnore, 0);
 
     return sc_memorySave(fileName);
 }
 
 int rk_mytermrestore()
 {
+    sc_regSet(Sc_ClockIgnore, 1);
     rk_mytermregime(0, 0, 0, 1, 0);
     printf("Введите имя файла:\n");
     char fileName[250];
     scanf("%s", fileName);
     rk_mytermregime(1, 0, 0, 0, 0);
+    sc_regSet(Sc_ClockIgnore, 0);
 
     return sc_memoryLoad(fileName);
 }
