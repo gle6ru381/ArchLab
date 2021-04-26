@@ -142,7 +142,8 @@ static int jnegFunc(int operand)
 
 static int jzFunc(int operand)
 {
-    if ((sc_accumGet() << 1) == 0)
+    short val = sc_remValue(sc_accumGet());
+    if ((val) == 0)
         sc_counterSet(operand);
     return 0;
 }
